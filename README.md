@@ -8,6 +8,37 @@ loops, dependencies, repetition, and age, then rewrites the file with a
 Think of it as a continuously-running semantic prioritization layer over
 unstructured notes. A cognitive co-processor, not a to-do list.
 
+## Install
+
+Requires **Python 3.8+**. No dependencies.
+
+```bash
+git clone https://github.com/shriram-svg/active-doc.git
+cd active-doc
+```
+
+Or grab just the engine:
+
+```bash
+curl -O https://raw.githubusercontent.com/shriram-svg/active-doc/master/engine.py
+```
+
+## Quick start
+
+```bash
+# 1. Create or pick any markdown file
+echo "Need to email Sam. IMPORTANT: ship demo. Waiting on dataset." > mynotes.md
+
+# 2. Run the engine against it
+python3 engine.py mynotes.md
+
+# 3. Open mynotes.md — a "🔥 Active Focus" block is now at the top
+```
+
+Write freely in the file below the `<!-- active-doc:end -->` marker. Re-run
+the engine any time; the focus block is regenerated, your notes are
+preserved.
+
 ## Usage
 
 ```bash
@@ -40,14 +71,28 @@ between `## 🔥 Active Focus` and the `<!-- active-doc:end -->` marker.
 State (first-seen timestamps) lives in `<file>.state.json` so aging works
 across runs.
 
-## Run in the background (macOS)
+## Run in the background
 
-See `com.activedoc.engine.plist` for a sample `launchd` agent that re-runs
-every 30 seconds. Edit the paths, then:
+**macOS (launchd):** edit the paths in `com.activedoc.engine.plist` to point
+at your own `engine.py` and notes file, then:
 
 ```bash
 cp com.activedoc.engine.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.activedoc.engine.plist
+# to stop:
+launchctl unload ~/Library/LaunchAgents/com.activedoc.engine.plist
+```
+
+**Linux / anywhere:** just use `--watch`:
+
+```bash
+nohup python3 engine.py ~/notes.md --watch 10 &
+```
+
+**Cron (every minute):**
+
+```
+* * * * * /usr/bin/python3 /path/to/engine.py /path/to/notes.md
 ```
 
 ## Roadmap
