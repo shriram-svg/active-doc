@@ -1,103 +1,146 @@
 # active-doc
 
-A self-organizing markdown document. Write freely — no dates, no checkboxes,
-no tagging. The engine scans the text for action verbs, urgency cues, open
-loops, dependencies, repetition, and age, then rewrites the file with a
-**🔥 Active Focus** section at the top.
+**A notes file that organizes itself.**
 
-Think of it as a continuously-running semantic prioritization layer over
-unstructured notes. A cognitive co-processor, not a to-do list.
+Just write. Anything that sounds like something you need to do — "call the plumber", "IMPORTANT: renew passport", "waiting on Sam" — automatically bubbles to the top of the file. No checkboxes, no tags, no due dates.
 
-## Install
+---
 
-Requires **Python 3.8+**. No dependencies.
+## Install (one command)
+
+### On a Mac
+
+Open the **Terminal** app (press ⌘+Space, type `Terminal`, hit enter). Paste this and press enter:
 
 ```bash
-git clone https://github.com/shriram-svg/active-doc.git
-cd active-doc
+curl -fsSL https://raw.githubusercontent.com/shriram-svg/active-doc/master/install.sh | bash
 ```
 
-Or grab just the engine:
+That's it. The installer will:
+
+- create a folder at `~/active-doc/`
+- put a starter `notes.md` file inside it
+- start a background job that re-ranks your notes every 30 seconds
+
+When it's done, open your notes file:
 
 ```bash
-curl -O https://raw.githubusercontent.com/shriram-svg/active-doc/master/engine.py
+open ~/active-doc/notes.md
 ```
 
-## Quick start
+Or find it in Finder: **Go → Home → active-doc → notes.md**.
+
+### On Linux
+
+Same command:
 
 ```bash
-# 1. Create or pick any markdown file
-echo "Need to email Sam. IMPORTANT: ship demo. Waiting on dataset." > mynotes.md
-
-# 2. Run the engine against it
-python3 engine.py mynotes.md
-
-# 3. Open mynotes.md — a "🔥 Active Focus" block is now at the top
+curl -fsSL https://raw.githubusercontent.com/shriram-svg/active-doc/master/install.sh | bash
 ```
 
-Write freely in the file below the `<!-- active-doc:end -->` marker. Re-run
-the engine any time; the focus block is regenerated, your notes are
-preserved.
-
-## Usage
+Then keep it running with:
 
 ```bash
-# one-shot
-python3 engine.py notes.md
-
-# continuous (re-run every 10s)
-python3 engine.py notes.md --watch 10
-
-# surface more items
-python3 engine.py notes.md --top 8
+python3 ~/active-doc/engine.py ~/active-doc/notes.md --watch 30
 ```
 
-The engine preserves your full document and only maintains the focus block
-between `## 🔥 Active Focus` and the `<!-- active-doc:end -->` marker.
+---
 
-## Signals
+## How to use it
 
-| Signal | Examples | Weight |
-|---|---|---|
-| Action verbs | need to, should, must, follow up, finalize, ship | +3 |
-| Urgency | important, ASAP, blocker, deadline, today | +3 |
-| Dependency | waiting on, blocked by, depends on | +2 |
-| Ownership | I will, we need | +1 |
-| Open loop | not sure, unclear, trailing `?` | +1 |
-| Emphasis | **bold**, `IMPORTANT`, `!!` | +1 |
-| Repetition | same idea appearing N times | +N-1 (cap 3) |
-| Age | unresolved for N days | +N (cap 3) |
+1. **Open** `~/active-doc/notes.md` in any text editor (TextEdit, VS Code, Obsidian, anything).
+2. **Write freely** below the `<!-- active-doc:end -->` line.
+3. **Save** the file.
+4. Within 30 seconds, the top of the file updates with your most important items.
 
-State (first-seen timestamps) lives in `<file>.state.json` so aging works
-across runs.
+Example — before:
 
-## Run in the background
+```
+Finish tax return
+Had coffee with Jamie
+Need to call the dentist tomorrow
+Waiting on plumber quote
+IMPORTANT: renew passport before August
+```
 
-**macOS (launchd):** edit the paths in `com.activedoc.engine.plist` to point
-at your own `engine.py` and notes file, then:
+After (the top gets added automatically):
+
+```
+## 🔥 Active Focus
+
+1. IMPORTANT: renew passport before August  (score 7)
+2. Need to call the dentist tomorrow  (score 6)
+3. Waiting on plumber quote  (score 2)
+4. Finish tax return  (score 1)
+
+<!-- active-doc:end -->
+
+Finish tax return
+Had coffee with Jamie
+Need to call the dentist tomorrow
+...
+```
+
+(`Had coffee with Jamie` isn't an action, so it's not in the focus list — but still in your file.)
+
+---
+
+## Uninstall
 
 ```bash
-cp com.activedoc.engine.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.activedoc.engine.plist
-# to stop:
+curl -fsSL https://raw.githubusercontent.com/shriram-svg/active-doc/master/uninstall.sh | bash
+```
+
+Your notes file is kept. Delete `~/active-doc/` manually if you want it gone.
+
+---
+
+## What counts as "important"?
+
+The engine looks for these cues in your text:
+
+- **Action words**: need to, should, must, finalize, ship, email, call, follow up
+- **Urgency**: IMPORTANT, ASAP, urgent, deadline, today
+- **Dependencies**: waiting on, blocked by
+- **Open questions**: not sure, unclear, lines ending in `?`
+- **Emphasis**: `**bold**`, `!!`, the word `IMPORTANT`
+- **Staleness**: something you wrote days ago that still hasn't been removed
+- **Repetition**: the same concern written multiple times
+
+The more of these a line hits, the higher it ranks.
+
+---
+
+## Troubleshooting
+
+**"It's not updating my file."**
+Make sure the background job is running:
+
+```bash
+launchctl list | grep activedoc
+```
+
+If nothing shows up, re-run the install command.
+
+**"I want to change which file it watches."**
+Edit `~/Library/LaunchAgents/com.activedoc.engine.plist` and change the last `<string>` path, then:
+
+```bash
 launchctl unload ~/Library/LaunchAgents/com.activedoc.engine.plist
+launchctl load ~/Library/LaunchAgents/com.activedoc.engine.plist
 ```
 
-**Linux / anywhere:** just use `--watch`:
+**"I don't have Python 3."**
+On macOS, run `xcode-select --install` in Terminal. That installs it.
+
+---
+
+## For developers
+
+See `engine.py` — a single-file Python script, no dependencies. Run directly:
 
 ```bash
-nohup python3 engine.py ~/notes.md --watch 10 &
+python3 engine.py path/to/notes.md            # one-shot
+python3 engine.py path/to/notes.md --watch 10 # continuous
+python3 engine.py path/to/notes.md --top 8    # surface more items
 ```
-
-**Cron (every minute):**
-
-```
-* * * * * /usr/bin/python3 /path/to/engine.py /path/to/notes.md
-```
-
-## Roadmap
-
-- LLM-based scoring (replace regex heuristics)
-- Embedding-based dedupe (collapse near-duplicate items)
-- Dependency graph ("waiting on X" → surface blockers of blockers)
-- Decay for items explicitly marked done/resolved
